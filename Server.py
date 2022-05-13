@@ -35,7 +35,7 @@ def split_data(data):
 def receive_posts(list):
     ret_list = []
     for value in list:
-        for doc in mycol.find(value):
+        for doc in my_post_col.find(value):
             doc['_id'] = str(doc['_id'])
             ret_list.append(doc)
 
@@ -96,7 +96,7 @@ def upload_post(subjects, business_id):
 
     post.update(subjects)
 
-    id = mycol.insert_one(post)
+    id = my_post_col.insert_one(post)
     id = id.inserted_id
 
     mydb.Businesses.update_one({'_id': ObjectId(business_id)}, {"$set": {'posts': [id]}})
@@ -146,10 +146,28 @@ def unique_num(parent, value):
         unique_num(keys[i], value[keys[i]])
 
 
+# ///////////
+def is_email_exist(email):
+    if len(list(mydb.Workers.find({"_login": {"$in": [email]}}))) > 0:
+        print(True)
+        return True
+
+    if len(list(mydb.Businesses.find({"_login": {"$in": [email]}}))) > 0:
+        print(True)
+        return True
+
+    print(False)
+    return False
+
+
 # ##########################
 myclient = pymongo.MongoClient("mongodb+srv://Server1:1server@jobrowser.g2p5a.mongodb.net/")
 mydb = myclient["JOBrowserDB"]
-mycol = mydb["Posts"]
+my_post_col = mydb["Posts"]
+# mydb_business = mydb["Business"]
+# mydb_workers = mydb["Workers"] #TODO: organize the variables that are related to the db
+
+
 
 api = Flask(__name__)
 
@@ -209,8 +227,14 @@ def initial_sign_up():
 def info_sign_up():
     body = request.data.decode()
     data = json.loads(body)
-
     return json.dumps(str(create_profile(data[0], data[1], data[2], data[3])))
+
+
+
+@api.route('/EmailExists', methods=['POST'])
+def email_exists():
+    body = request.data.decode()
+    return json.dumps(is_email_exist(body))
 
 
 if __name__ == '__main__':
