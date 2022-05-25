@@ -10,6 +10,7 @@ MAX_MSG_LENGTH = 1024
 SERVER_PORT = 5000
 SERVER_IP = '0.0.0.0'
 
+
 # Find post
 def split_data(data):
     list = []
@@ -57,7 +58,8 @@ def order_posts(list):
             break
         if i.get('_id') == str(ObjectId(result[index])):
             del i['_id']
-            i['Business ID'] = str(i['Business ID']) #TODO: make sure the other side understands that ObjectID is now a string
+            i['Business ID'] = str(
+                i['Business ID'])  # TODO: make sure the other side understands that ObjectID is now a string
             posts.append(i)
             index += 1
 
@@ -76,6 +78,8 @@ def convert_posts_to_unique_nums(posts):
 
     print(posts)
     return posts
+
+
 # #################
 
 # send subjects to choose form
@@ -103,17 +107,21 @@ def upload_post(subjects, business_id):
 
 
 # Create Profile
-def create_profile(username, password, subjects, profile_type):
-    profile = {"_login": [username, password]} #TODO: encrypt and make sure users do not get this piece of info at all
+def create_profile(email, password, subjects, profile_type):
+    profile = {"_email": email,
+               "_password": password}  # TODO: encrypt and make sure users do not get this piece of info at all
 
     profile.update(subjects)
 
-    if profile_type == 1:
-        id = mydb.Businesses.insert_one(profile)
+    print(profile_type)
+    print(type(profile_type))
+    if profile_type == "1":
+        mydb.Businesses.insert_one(profile)
     else:
-        id = mydb.Workers.insert_one(profile)
+        mydb.Workers.insert_one(profile)
 
-    return id.inserted_id
+    return is_account_exist(email, password)
+
 
 # /////////////////
 global unique_num_dict
@@ -125,9 +133,9 @@ def unique_num(parent, value):
     if type(value) == list:
         for i in range(len(value)):
             if parent != "":
-                unique_num_dict[value[i]] = unique_num_dict[parent] + str(i+1)
+                unique_num_dict[value[i]] = unique_num_dict[parent] + str(i + 1)
             else:
-                unique_num_dict[value[i]] = str(i+1)
+                unique_num_dict[value[i]] = str(i + 1)
         return
     elif type(value) != dict:
         unique_num_dict[value] = unique_num_dict[parent] + "1"
@@ -139,34 +147,79 @@ def unique_num(parent, value):
             keys.append(key)
 
         if parent != "":
-            unique_num_dict[keys[i]] = unique_num_dict[parent] + str(i+1)
+            unique_num_dict[keys[i]] = unique_num_dict[parent] + str(i + 1)
         else:
-            unique_num_dict[keys[i]] = str(i+1)
+            unique_num_dict[keys[i]] = str(i + 1)
 
         unique_num(keys[i], value[keys[i]])
 
 
 # ///////////
 def is_email_exist(email):
-    if len(list(mydb.Workers.find({"_login": {"$in": [email]}}))) > 0:
-        print(True)
+    # if len(list(mydb.Businesses.find({"_login": {"$in": [email]}}))) > 0:
+    #     return True
+    # if len(list(mydb.Workers.find({"_login": {"$in": [email]}}))) > 0:
+    #     return True
+    if len(list(mydb.Businesses.find({"_email": email}))) > 0:
         return True
 
-    if len(list(mydb.Businesses.find({"_login": {"$in": [email]}}))) > 0:
-        print(True)
+    if len(list(mydb.Workers.find({"_email": email}))) > 0:
         return True
 
-    print(False)
     return False
+
+
+def is_account_exist(email, password):
+    print(email)
+    print(type(email))
+    profile = mydb.Businesses.find_one({"_email": email, "_password": password})
+    if len(profile) > 0:
+        profile['_id'] = str(profile['_id'])
+        del profile['_email']
+        del profile['_password']
+
+        print(profile)
+        return profile
+
+    profile = list(mydb.Workers.find({"_email": email, "_password": password}))
+    if len(profile) > 0:
+        profile['_id'] = str(profile['_id'])
+        del profile['_email']
+        del profile['_password']
+
+        print(profile)
+        return profile
+
+    return False
+
+
+def get_profile_page(id):
+    try:
+        if id[0] == "0":
+            doc = mydb.Businesses.find_one({'_id': ObjectId(id[1:])})
+        else:
+            doc = mydb.Workers.find_one({'_id': ObjectId(id[1:])})
+
+        del doc['_id']
+        del doc['_email']
+        del doc['_password']
+
+        print(doc)
+        return doc
+
+    except():
+        pass
 
 
 # ##########################
 myclient = pymongo.MongoClient("mongodb+srv://Server1:1server@jobrowser.g2p5a.mongodb.net/")
 mydb = myclient["JOBrowserDB"]
 my_post_col = mydb["Posts"]
+my_businesses_col = mydb["Businesses"]
+my_workers_col = mydb["Workers"]
+
 # mydb_business = mydb["Business"]
 # mydb_workers = mydb["Workers"] #TODO: organize the variables that are related to the db
-
 
 
 api = Flask(__name__)
@@ -189,9 +242,8 @@ def create_post():
     print(body)
     data = json.loads(body)
 
-    #TODO: DELETE "620e6b4e91499fc9160a8339"  WHEN YOU ADD PROFILES, SO THE ID IS THE PROFILE'S
+    # TODO: DELETE "620e6b4e91499fc9160a8339"  WHEN YOU ADD PROFILES, SO THE ID IS THE PROFILE'S
     upload_post(data, "620e6b4e91499fc9160a8339")  # subjects, business_id
-
 
 
 @api.route('/GetSubjects', methods=['POST'])
@@ -223,12 +275,12 @@ def initial_sign_up():
     return json.dumps(subjects)
 
 
-@api.route('/InfoSignUp', methods=['POST'])
-def info_sign_up():
+@api.route('/CreateProfile', methods=['POST'])
+def create_pro():
     body = request.data.decode()
     data = json.loads(body)
-    return json.dumps(str(create_profile(data[0], data[1], data[2], data[3])))
-
+    return json.dumps(
+        str(create_profile(data["NewProfile"][0], data["NewProfile"][1], data["NewProfile"][2], data["NewProfile"][3])))
 
 
 @api.route('/EmailExists', methods=['POST'])
@@ -237,9 +289,23 @@ def email_exists():
     return json.dumps(is_email_exist(body))
 
 
+@api.route('/SignIn', methods=['POST'])
+def sign_in():
+    body = request.data.decode()
+    data = json.loads(body)
+    return json.dumps(is_account_exist(data["email"], data["password"]))
+
+
+@api.route('/GetProfile', methods=['POST'])
+def get_pro():
+    body = request.data.decode()
+    print(body)
+    data = json.loads(body)
+    return json.dumps(get_profile_page(data))
+
+
 if __name__ == '__main__':
     api.run(host='0.0.0.0')
-
 
 # TODO: upgrade the functions that find dicts
 # TODO: organize the code into classes
