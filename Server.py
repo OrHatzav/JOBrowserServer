@@ -96,7 +96,7 @@ def get_subjects(subject):
 
 # Create post
 def upload_post(subjects, business_id):
-    post = {"Business ID": ObjectId(business_id)}
+    post = {"Business ID": business_id}
 
     post.update(subjects)
 
@@ -116,11 +116,11 @@ def create_profile(email, password, subjects, profile_type):
     print(profile_type)
     print(type(profile_type))
     if profile_type == "1":
-        mydb.Businesses.insert_one(profile)
+        id = mydb.Businesses.insert_one(profile)
     else:
-        mydb.Workers.insert_one(profile)
+        id = mydb.Workers.insert_one(profile)
 
-    return is_account_exist(email, password)
+    return id.inserted_id
 
 
 # /////////////////
@@ -171,9 +171,9 @@ def is_email_exist(email):
 
 def is_account_exist(email, password):
     print(email)
-    print(type(email))
+    print(password)
     profile = mydb.Businesses.find_one({"_email": email, "_password": password})
-    if len(profile) > 0:
+    if not profile is None:
         profile['_id'] = str(profile['_id'])
         del profile['_email']
         del profile['_password']
@@ -181,8 +181,8 @@ def is_account_exist(email, password):
         print(profile)
         return profile
 
-    profile = list(mydb.Workers.find({"_email": email, "_password": password}))
-    if len(profile) > 0:
+    profile = mydb.Workers.find_one({"_email": email, "_password": password})
+    if not profile is None:
         profile['_id'] = str(profile['_id'])
         del profile['_email']
         del profile['_password']
@@ -243,7 +243,7 @@ def create_post():
     data = json.loads(body)
 
     # TODO: DELETE "620e6b4e91499fc9160a8339"  WHEN YOU ADD PROFILES, SO THE ID IS THE PROFILE'S
-    upload_post(data, "620e6b4e91499fc9160a8339")  # subjects, business_id
+    upload_post(data[0], data[1])  # subjects, business_id
 
 
 @api.route('/GetSubjects', methods=['POST'])
@@ -278,6 +278,7 @@ def initial_sign_up():
 @api.route('/CreateProfile', methods=['POST'])
 def create_pro():
     body = request.data.decode()
+    print(body)
     data = json.loads(body)
     return json.dumps(
         str(create_profile(data["NewProfile"][0], data["NewProfile"][1], data["NewProfile"][2], data["NewProfile"][3])))
