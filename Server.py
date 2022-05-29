@@ -18,6 +18,7 @@ class PostRelated:
     def __init__(self):
         pass
 
+    # הפונקציה מקבלת את הבחירה של תוכן שבעזרתו מחפשים פוסטטים ומעבירה לפורמט שניתן לעבוד איתו
     def split_data(self, data):
         list = []
         for i in data:
@@ -38,6 +39,7 @@ class PostRelated:
             list.append({key: value})
         return list
 
+    # פונקציה המקבלת את הפוסטים מהמאגר בעזרת נתונים שהתקבלו מהאפליקציה
     def receive_posts(self, list):
         ret_list = []
         for value in list:
@@ -47,6 +49,7 @@ class PostRelated:
 
         return ret_list
 
+    # פונקציה שמסדרת את הפוסטים שהתקבלו לפי כמות ההופעות
     def order_posts(self, list):
         id_list = []
         for i in list:
@@ -69,6 +72,7 @@ class PostRelated:
 
         return posts
 
+    # פונקציה שמעלה פוסט לפי הנתונים שהתקבלו
     def upload_post(self, subjects, business_id):
         post = {"Business ID": business_id}
 
@@ -86,6 +90,7 @@ class ProfileRelated:
         self.HASH_LENGTH = 32
 
     # Create Profile
+    # פונקציה היוצרת פרופיל לפי המידע שהתקבל
     def create_profile(self, email, password, subjects, profile_type):
 
         msg = hashlib.md5(str(password).zfill(self.HASH_LENGTH).encode()).hexdigest()
@@ -102,6 +107,7 @@ class ProfileRelated:
 
         return id.inserted_id
 
+    # פונקציה הבודקת אם מייל קיים במערכת
     def is_email_exist(self, email):
         if len(list(my_businesses_col.find({"_email": email}))) > 0:
             return True
@@ -111,6 +117,7 @@ class ProfileRelated:
 
         return False
 
+    # הפונקציה בודקת אם פרופיל קיים במערכת
     def is_account_exist(self, email, password):
         msg = hashlib.md5(str(password).zfill(self.HASH_LENGTH).encode()).hexdigest()
 
@@ -132,6 +139,7 @@ class ProfileRelated:
 
         return False
 
+    # פונקציה המקבלת נתונים ומחזירה את הפרופיל של הנתונים
     def get_profile_page(self, id):
         try:
             if id[0] == "0":
@@ -149,7 +157,7 @@ class ProfileRelated:
             pass
 
 
-# System Functions
+# פונקציה המעבירה את הנתונים של הפוסטים למצב שניתן להעביר לאפליקציה בעזרת מספר מזהה לכל פיסת מידע
 def convert_posts_to_unique_nums(posts):
     global unique_num_dict
     for i in range(len(posts)):
@@ -159,7 +167,7 @@ def convert_posts_to_unique_nums(posts):
         posts[i] = unique_num_dict
         unique_num_dict = {}
 
-
+# פונקציה המקבלת את הנתונים מהמאגר שמהם ניתן לבחור מידע באפליקציה
 def get_subjects(subject):
     subjects = mydb.Subjects.find_one({"Subject": subject})
     del subjects['_id']
@@ -173,7 +181,7 @@ global unique_num_dict
 unique_num_dict = {}
 
 
-# TODO: when the amount of digits run over, move to letters (lower case and then upper case)
+# פונקציה המעבירה מידע לפורמט שניתן להעביר ללקוח
 def unique_num(parent, value):
     if type(value) == list:
         for i in range(len(value)):
@@ -211,7 +219,7 @@ my_workers_col = mydb["Workers"]
 api = Flask(__name__)
 postRelated = PostRelated()
 profileRelated = ProfileRelated()
-
+# כל הפעולות שמתקשרות עם הלקוחות בעזרת פרוטוקול http
 @api.route('/GetPosts', methods=['POST'])
 def get_posts():
     body = request.data.decode()
